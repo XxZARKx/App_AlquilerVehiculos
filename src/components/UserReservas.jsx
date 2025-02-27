@@ -80,12 +80,16 @@ const MisReservas = () => {
     },
     onSuccess: (reservationId) => {
       queryClient.invalidateQueries(["reservations", userId]);
+      queryClient.invalidateQueries(["vehicles", reservations]); // 💡 Agregar esto
+      queryClient.invalidateQueries(["sucursales", reservations]); // 💡 Agregar esto
+
       Swal.fire({
         icon: "success",
         title: "Reserva cancelada",
         text: "La reserva se ha cancelado exitosamente.",
       });
     },
+
     onError: (error) => {
       Swal.fire({
         icon: "error",
@@ -165,10 +169,22 @@ const MisReservas = () => {
         <h1 className="text-2xl font-bold mb-4">Mis Reservas</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reservations.map((reservation, index) => {
-            const vehicle = vehicles[index];
+            // Verifica que vehicles y sucursales no sean undefined y tengan la longitud esperada
+            const vehicle =
+              vehicles && vehicles.length > index ? vehicles[index] : null;
+            const sucursal =
+              sucursales && sucursales.length > index
+                ? sucursales[index]
+                : null;
+
+            if (!vehicle) {
+              return null; // O puedes renderizar un mensaje de error o un componente de carga
+            }
+
             const fechaReserva = new Date(reservation.fecha_reserva);
             const fechaDevolucion = new Date(fechaReserva);
-            fechaDevolucion.setDate(fechaReserva.getDate() + reservation.dias); // Calculamos la fecha de devolución
+            fechaDevolucion.setDate(fechaReserva.getDate() + reservation.dias);
+
             return (
               <div
                 key={reservation.id}
@@ -207,9 +223,7 @@ const MisReservas = () => {
                 </p>
                 <p>
                   <strong>Sucursal:</strong>{" "}
-                  {sucursales && sucursales[index]
-                    ? sucursales[index].nombre_sucursal
-                    : "No especificada"}
+                  {sucursal ? sucursal.nombre_sucursal : "No especificada"}
                 </p>
 
                 <button
