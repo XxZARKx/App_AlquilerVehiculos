@@ -12,3 +12,4 @@ export const getReservationsByUserId = async (userId) => {
 
 	return data;
 };
+

@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "../provider/user/getAuthUser";
 import { getReservationsByUserId } from "../provider/reservation/getReservationUser";
 import { getVehicleById } from "../provider/vehicle/getVehicleById";
 import { supabase } from "../../api/supabaseClient";
+import { getSucursalById } from "../provider/reservation/getSucursalById";
 import Header from "./Header";
 import Footer from "./Footer";
 import Swal from "sweetalert2";
@@ -44,6 +45,13 @@ const MisReservas = () => {
     return Promise.all(vehicleDataPromises);
   };
 
+  const fetchSucursalData = async (reservations) => {
+    return Promise.all(
+      reservations.map((reservation) =>
+        getSucursalById(reservation.sucursal_id)
+      )
+    );
+  };
   const {
     data: vehicles,
     isLoading: loadingVehicles,
@@ -51,6 +59,12 @@ const MisReservas = () => {
   } = useQuery({
     queryKey: ["vehicles", reservations],
     queryFn: () => fetchVehicleData(reservations),
+    enabled: !!reservations && reservations.length > 0,
+  });
+
+  const { data: sucursales, isLoading: loadingSucursales } = useQuery({
+    queryKey: ["sucursales", reservations],
+    queryFn: () => fetchSucursalData(reservations),
     enabled: !!reservations && reservations.length > 0,
   });
 
@@ -191,6 +205,13 @@ const MisReservas = () => {
                   <strong>Fecha de devolución:</strong>{" "}
                   {fechaDevolucion.toLocaleDateString()}
                 </p>
+                <p>
+                  <strong>Sucursal:</strong>{" "}
+                  {sucursales && sucursales[index]
+                    ? sucursales[index].nombre_sucursal
+                    : "No especificada"}
+                </p>
+
                 <button
                   onClick={() => handleCancelReservation(reservation.id)}
                   className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg"
