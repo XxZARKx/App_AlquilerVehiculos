@@ -11,16 +11,13 @@ import Swal from "sweetalert2";
 
 const MisReservas = () => {
   const [userId, setUserId] = useState(null);
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const user = await getAuthenticatedUser();
-        if (user) {
-          setUserId(user.id);
-        }
+        if (user) setUserId(user.id);
       } catch (error) {
         console.error("Error al obtener el usuario autenticado:", error);
       }
@@ -32,6 +29,7 @@ const MisReservas = () => {
     data: reservations,
     isLoading: loadingReservations,
     error: reservationsError,
+    refetch: refetchReservations,
   } = useQuery({
     queryKey: ["reservations", userId],
     queryFn: () => getReservationsByUserId(userId),
@@ -39,19 +37,11 @@ const MisReservas = () => {
   });
 
   const fetchVehicleData = async (reservations) => {
-    const vehicleDataPromises = reservations.map((reservation) =>
-      getVehicleById(reservation.vehiculo_id)
+    return Promise.all(
+      reservations.map((reservation) => getVehicleById(reservation.vehiculo_id))
     );
-    return Promise.all(vehicleDataPromises);
   };
 
-  const fetchSucursalData = async (reservations) => {
-    return Promise.all(
-      reservations.map((reservation) =>
-        getSucursalById(reservation.sucursal_id)
-      )
-    );
-  };
   const {
     data: vehicles,
     isLoading: loadingVehicles,
@@ -62,6 +52,14 @@ const MisReservas = () => {
     enabled: !!reservations && reservations.length > 0,
   });
 
+  const fetchSucursalData = async (reservations) => {
+    return Promise.all(
+      reservations.map((reservation) =>
+        getSucursalById(reservation.sucursal_id)
+      )
+    );
+  };
+
   const { data: sucursales, isLoading: loadingSucursales } = useQuery({
     queryKey: ["sucursales", reservations],
     queryFn: () => fetchSucursalData(reservations),
@@ -70,8 +68,8 @@ const MisReservas = () => {
 
   const cancelReservationMutation = useMutation({
     mutationFn: async (reservationId) => {
-      await supabase.from("reserva").delete().eq("id", reservationId);
       const reservation = reservations.find((res) => res.id === reservationId);
+      await supabase.from("reserva").delete().eq("id", reservationId);
       await supabase
         .from("vehiculo")
         .update({ estado: "Disponible" })
@@ -80,16 +78,15 @@ const MisReservas = () => {
     },
     onSuccess: (reservationId) => {
       queryClient.invalidateQueries(["reservations", userId]);
-      queryClient.invalidateQueries(["vehicles", reservations]); // 💡 Agregar esto
-      queryClient.invalidateQueries(["sucursales", reservations]); // 💡 Agregar esto
-
+      queryClient.invalidateQueries(["vehicles", reservations]);
+      queryClient.invalidateQueries(["sucursales", reservations]);
+      refetchReservations();
       Swal.fire({
         icon: "success",
         title: "Reserva cancelada",
         text: "La reserva se ha cancelado exitosamente.",
       });
     },
-
     onError: (error) => {
       Swal.fire({
         icon: "error",
@@ -114,26 +111,29 @@ const MisReservas = () => {
     });
   };
 
-  useEffect(() => {
-    if (
-      !loadingReservations &&
-      !loadingVehicles &&
-      reservations !== undefined &&
-      vehicles !== undefined
-    ) {
-      setIsDataLoaded(true);
-    }
-  }, [loadingReservations, loadingVehicles, reservations, vehicles]);
+  const isDataLoaded =
+    !loadingReservations &&
+    !loadingVehicles &&
+    !loadingSucursales &&
+    reservations !== undefined &&
+    (reservations.length === 0 ||
+      (vehicles !== undefined && sucursales !== undefined));
 
   if (!isDataLoaded) {
-    return <div>Cargando reservas...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-gray-700">Cargando reservas...</p>
+      </div>
+    );
   }
 
   if (reservationsError || vehiclesError) {
     return (
-      <div>
-        Error al cargar los datos:{" "}
-        {reservationsError?.message || vehiclesError?.message}
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-red-500">
+          Error al cargar los datos:{" "}
+          {reservationsError?.message || vehiclesError?.message}
+        </p>
       </div>
     );
   }
@@ -146,17 +146,14 @@ const MisReservas = () => {
             No tienes reservas realizadas
           </h2>
           <p className="text-gray-500 mt-2">
-            Actualmente no tienes ninguna reserva registrada. ¿Te gustaría hacer
-            una nueva?
+            Actualmente no tienes ninguna reserva registrada.
           </p>
-          <div className="mt-4">
-            <button
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={() => (window.location.href = "/vehicles")} // Cambia la URL por la correspondiente
-            >
-              Hacer una nueva reserva
-            </button>
-          </div>
+          <button
+            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+            onClick={() => (window.location.href = "/vehicles")}
+          >
+            Hacer una nueva reserva
+          </button>
         </div>
       </div>
     );
@@ -169,17 +166,10 @@ const MisReservas = () => {
         <h1 className="text-2xl font-bold mb-4">Mis Reservas</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reservations.map((reservation, index) => {
-            // Verifica que vehicles y sucursales no sean undefined y tengan la longitud esperada
-            const vehicle =
-              vehicles && vehicles.length > index ? vehicles[index] : null;
-            const sucursal =
-              sucursales && sucursales.length > index
-                ? sucursales[index]
-                : null;
+            const vehicle = vehicles[index];
+            const sucursal = sucursales[index];
 
-            if (!vehicle) {
-              return null; // O puedes renderizar un mensaje de error o un componente de carga
-            }
+            if (!vehicle) return null;
 
             const fechaReserva = new Date(reservation.fecha_reserva);
             const fechaDevolucion = new Date(fechaReserva);
@@ -199,7 +189,7 @@ const MisReservas = () => {
                   {vehicle.marca} {vehicle.modelo}
                 </h2>
                 <p>
-                  <strong>Matricula:</strong> {vehicle.matricula}
+                  <strong>Matrícula:</strong> {vehicle.matricula}
                 </p>
                 <p>
                   <strong>Categoría:</strong> {vehicle.categoria}
@@ -225,7 +215,6 @@ const MisReservas = () => {
                   <strong>Sucursal:</strong>{" "}
                   {sucursal ? sucursal.nombre_sucursal : "No especificada"}
                 </p>
-
                 <button
                   onClick={() => handleCancelReservation(reservation.id)}
                   className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg"

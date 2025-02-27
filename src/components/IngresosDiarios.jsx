@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
 import { supabase } from "../../api/supabaseClient";
 
 const IngresosDiarios = () => {
@@ -20,9 +19,9 @@ const IngresosDiarios = () => {
 
     const { data, error } = await supabase
       .from("reserva")
-      .select("total, fecha_reserva")
-      .gte("fecha_reserva", startDateUTC.toISOString())
-      .lte("fecha_reserva", endDateUTC.toISOString());
+      .select("total, fecha_reserva_realizada")
+      .gte("fecha_reserva_realizada", startDateUTC.toISOString())
+      .lte("fecha_reserva_realizada", endDateUTC.toISOString());
 
     if (error) {
       console.error("Error al obtener ingresos:", error);
@@ -30,13 +29,11 @@ const IngresosDiarios = () => {
     }
 
     const ingresosAgrupados = data.reduce((acc, ingreso) => {
-      const fecha = new Date(ingreso.fecha_reserva).toLocaleDateString(
-        "es-PE",
-        {
-          timeZone: "America/Lima",
-        }
-      );
-
+      const fecha = new Date(
+        ingreso.fecha_reserva_realizada
+      ).toLocaleDateString("es-PE", {
+        timeZone: "America/Lima",
+      });
       if (!acc[fecha]) {
         acc[fecha] = 0;
       }

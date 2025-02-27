@@ -6,7 +6,7 @@ import "chart.js/auto";
 import { supabase } from "../../api/supabaseClient";
 
 const VehicleAvailabilityReport = () => {
-  const { data: vehicles = [] } = useQuery({
+  const { data: vehicles = [], isLoading: isLoadingVehicles } = useQuery({
     queryKey: ["vehicles"],
     queryFn: getVehicles,
   });
@@ -15,25 +15,19 @@ const VehicleAvailabilityReport = () => {
     const { data, error } = await supabase
       .from("reserva")
       .select("total, vehiculo_id");
-
     if (error) {
-      console.error("Error al obtener reservas:", error);
+      console.error("Error fetching reservations:", error);
       throw new Error(error.message);
     }
-
-    const ingresosPorVehiculo = data.reduce((acc, reserva) => {
-      if (!acc[reserva.vehiculo_id]) {
-        acc[reserva.vehiculo_id] = 0;
-      }
-      acc[reserva.vehiculo_id] += reserva.total;
+    return data.reduce((acc, reserva) => {
+      acc[reserva.vehiculo_id] =
+        (acc[reserva.vehiculo_id] || 0) + reserva.total;
       return acc;
     }, {});
-
-    return ingresosPorVehiculo;
   };
 
   const {
-    data: ingresosReservados,
+    data: ingresosReservados = {},
     isLoading: isLoadingIngresos,
     error: errorIngresos,
   } = useQuery({
@@ -41,43 +35,83 @@ const VehicleAvailabilityReport = () => {
     queryFn: fetchIngresosReservados,
   });
 
-  const vehicleCounts = vehicles.reduce(
-    (acc, vehicle) => {
-      // Un vehículo está reservado si aparece en la tabla reserva
+  const processVehiclesData = () => {
+    const vehiclesByBrand = {};
+    let totalDisponibles = 0;
+    let totalReservados = 0;
+    let totalIngresos = 0;
+
+    vehicles.forEach((vehicle) => {
       const estaReservado = ingresosReservados?.[vehicle.id] > 0;
       if (estaReservado) {
-        acc.reservado++;
-      } else {
-        acc.disponible++;
-      }
-      return acc;
-    },
-    { disponible: 0, reservado: 0 }
-  );
+        totalReservados++;
+        totalIngresos += ingresosReservados[vehicle.id] || 0;
 
-  const totalIngresosReservados = Object.values(
-    ingresosReservados || {}
-  ).reduce((sum, ingreso) => sum + ingreso, 0);
+        if (!vehiclesByBrand[vehicle.marca]) {
+          vehiclesByBrand[vehicle.marca] = { cantidad: 0, ingresos: 0 };
+        }
+        vehiclesByBrand[vehicle.marca].cantidad += 1;
+        vehiclesByBrand[vehicle.marca].ingresos +=
+          ingresosReservados[vehicle.id] || 0;
+      } else {
+        totalDisponibles++;
+      }
+    });
+
+    return {
+      vehiclesByBrand,
+      totalDisponibles,
+      totalReservados,
+      totalIngresos,
+    };
+  };
+
+  const { vehiclesByBrand, totalDisponibles, totalReservados, totalIngresos } =
+    processVehiclesData();
+
+  const tableData = Object.entries(vehiclesByBrand).map(([marca, datos]) => ({
+    marca,
+    cantidad: datos.cantidad,
+    ingresos: datos.ingresos,
+  }));
+
+  tableData.sort((a, b) => b.ingresos - a.ingresos);
 
   const chartData = {
     labels: ["Disponibles", "Reservados"],
     datasets: [
       {
-        data: [vehicleCounts.disponible, vehicleCounts.reservado],
+        data: [totalDisponibles, totalReservados],
         backgroundColor: ["#36a2eb", "#ff6384"],
         hoverBackgroundColor: ["#36a2eb", "#ff6384"],
       },
     ],
   };
 
+  if (isLoadingVehicles || isLoadingIngresos) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Cargando...
+      </div>
+    );
+  }
+
+  if (errorIngresos) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Error al cargar los datos.
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Title */}
         <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          Vehículos Disponibles vs. Reservados
+          Informe de Disponibilidad de Vehículos
         </h2>
 
-        {/* Gráfico de pastel y resumen */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">
@@ -88,85 +122,76 @@ const VehicleAvailabilityReport = () => {
 
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              Resumen
+              Resumen General
             </h3>
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-700">
-                  <strong>Vehículos Disponibles:</strong>{" "}
-                  {vehicleCounts.disponible}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-700">
-                  <strong>Vehículos Reservados:</strong>{" "}
-                  {vehicleCounts.reservado}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-700">
-                  <strong>Ingresos por Reservas:</strong> S/{" "}
-                  {totalIngresosReservados.toFixed(2)}
-                </p>
-              </div>
-            </div>
+            <ul className="space-y-3">
+              <li>
+                <span className="font-medium text-gray-700">Disponibles:</span>{" "}
+                <span className="text-gray-800">{totalDisponibles}</span>
+              </li>
+              <li>
+                <span className="font-medium text-gray-700">Reservados:</span>{" "}
+                <span className="text-gray-800">{totalReservados}</span>
+              </li>
+              <li>
+                <span className="font-medium text-gray-700">
+                  Ingresos Totales:
+                </span>{" "}
+                <span className="text-gray-800">
+                  S/ {totalIngresos.toFixed(2)}
+                </span>
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* Tabla de vehículos */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">
-            Detalles de Vehículos
+            Ingresos por Marca
           </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-200">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="px-4 py-3 border-b text-left text-xs md:text-sm font-semibold text-gray-600">
+                  <th className="px-4 py-3 border-b text-left font-semibold text-gray-600">
                     Marca
                   </th>
-                  <th className="px-4 py-3 border-b text-left text-xs md:text-sm font-semibold text-gray-600">
-                    Modelo
+                  <th className="px-4 py-3 border-b text-left font-semibold text-gray-600">
+                    Cantidad
                   </th>
-                  <th className="px-4 py-3 border-b text-left text-xs md:text-sm font-semibold text-gray-600">
-                    Estado
-                  </th>
-                  <th className="px-4 py-3 border-b text-left text-xs md:text-sm font-semibold text-gray-600">
+                  <th className="px-4 py-3 border-b text-left font-semibold text-gray-600">
                     Ingresos Generados (S/)
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {vehicles.map((vehicle) => {
-                  const estaReservado = ingresosReservados?.[vehicle.id] > 0;
-                  return (
+                {tableData.length > 0 ? (
+                  tableData.map((row, index) => (
                     <tr
-                      key={vehicle.id}
-                      className="hover:bg-gray-50 transition-colors duration-200 text-xs md:text-sm"
+                      key={index}
+                      className="hover:bg-gray-50 transition-colors duration-200"
                     >
-                      <td className="px-4 py-3 border-b text-gray-800 font-medium">
-                        {vehicle.marca}
+                      <td className="px-4 py-3 border-b text-gray-800">
+                        {row.marca}
                       </td>
-                      <td className="px-4 py-3 border-b text-gray-800 font-medium">
-                        {vehicle.modelo}
+                      <td className="px-4 py-3 border-b text-gray-800">
+                        {row.cantidad}
                       </td>
-                      <td className="px-4 py-3 border-b">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            estaReservado
-                              ? "bg-red-100 text-red-800"
-                              : "bg-green-100 text-green-800"
-                          }`}
-                        >
-                          {estaReservado ? "Reservado" : "Disponible"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 border-b text-gray-800 font-medium">
-                        {ingresosReservados?.[vehicle.id]?.toFixed(2) || "0.00"}
+                      <td className="px-4 py-3 border-b text-gray-800">
+                        S/ {row.ingresos.toFixed(2)}
                       </td>
                     </tr>
-                  );
-                })}
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="3"
+                      className="px-4 py-3 border-b text-center text-gray-500"
+                    >
+                      No hay datos disponibles.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

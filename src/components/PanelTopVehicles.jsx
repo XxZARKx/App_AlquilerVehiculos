@@ -23,11 +23,22 @@ const PopularVehicleBrands = () => {
     .sort((a, b) => b[1] - a[1])
     .map(([brand, count]) => ({ brand, count }));
 
-  const chartData = {
-    labels: sortedBrands.map((b) => b.brand),
+  const totalReserved = sortedBrands.reduce(
+    (acc, brand) => acc + brand.count,
+    0
+  );
+
+  const brandPercentages = sortedBrands.map((brand) => ({
+    brand: brand.brand,
+    count: brand.count,
+    percentage: ((brand.count / totalReserved) * 100).toFixed(2),
+  }));
+
+  const pieChartData = {
+    labels: brandPercentages.map((b) => b.brand),
     datasets: [
       {
-        data: sortedBrands.map((b) => b.count),
+        data: brandPercentages.map((b) => parseFloat(b.percentage)),
         backgroundColor: [
           "#ff6384",
           "#36a2eb",
@@ -35,6 +46,30 @@ const PopularVehicleBrands = () => {
           "#4bc0c0",
           "#9966ff",
         ],
+      },
+    ],
+  };
+
+  const pieChartOptions = {
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || "";
+            const value = context.raw || 0;
+            return `${label}: ${value}%`;
+          },
+        },
+      },
+    },
+  };
+
+  const barChartData = {
+    labels: sortedBrands.map((b) => b.brand),
+    datasets: [
+      {
+        data: sortedBrands.map((b) => b.count),
+        backgroundColor: "#36a2eb",
       },
     ],
   };
@@ -83,11 +118,17 @@ const PopularVehicleBrands = () => {
         </h2>
 
         <div className="max-w-full md:max-w-2xl mx-auto bg-white p-6 shadow-md rounded-lg">
-          {view === "pie" && <Pie data={chartData} className="w-full h-auto" />}
+          {view === "pie" && (
+            <Pie
+              data={pieChartData}
+              options={pieChartOptions}
+              className="w-full h-auto"
+            />
+          )}
 
           {view === "bar" && (
             <Bar
-              data={chartData}
+              data={barChartData}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -103,7 +144,6 @@ const PopularVehicleBrands = () => {
             />
           )}
 
-          {/* Vista de Tabla */}
           {view === "table" && (
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white">
@@ -118,10 +158,13 @@ const PopularVehicleBrands = () => {
                     <th className="px-4 md:px-6 py-3 border-b-2 border-gray-200 text-left text-xs md:text-sm font-semibold text-gray-600">
                       Alquileres
                     </th>
+                    <th className="px-4 md:px-6 py-3 border-b-2 border-gray-200 text-left text-xs md:text-sm font-semibold text-gray-600">
+                      Porcentaje
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedBrands.map((brand, index) => (
+                  {brandPercentages.map((brand, index) => (
                     <tr
                       key={brand.brand}
                       className="hover:bg-gray-50 transition-colors duration-200"
@@ -134,6 +177,9 @@ const PopularVehicleBrands = () => {
                       </td>
                       <td className="px-4 md:px-6 py-4 border-b border-gray-200 text-xs md:text-sm font-semibold text-gray-800">
                         {brand.count}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 border-b border-gray-200 text-xs md:text-sm font-semibold text-gray-800">
+                        {brand.percentage}%
                       </td>
                     </tr>
                   ))}
