@@ -70,7 +70,7 @@ const IngresosDiarios = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
       <div className="bg-white p-8 rounded-xl shadow-2xl max-w-2xl w-full">
         <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
-          Ingresos Diarios
+          Reporte de ingresos
         </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

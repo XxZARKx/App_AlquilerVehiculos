@@ -21,7 +21,7 @@ const panels = {
 const menuItems = [
   { path: "usuarios", label: "Lista de Usuarios" },
   { path: "vehiculos", label: "Autos Disponibles" },
-  { path: "ingresos", label: "Ingresos Diarios" },
+  { path: "ingresos", label: "Ingresos" },
   { path: "ingresoVehiculo", label: "Ingreso Por Vehiculo" },
   { path: "top", label: "Vehiculos Populares" },
   { path: "reservationHistory", label: "Historial de reservas" },
