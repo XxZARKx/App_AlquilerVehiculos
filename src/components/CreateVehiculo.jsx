@@ -21,17 +21,15 @@ const CreateVehicleForm = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isFileValid, setIsFileValid] = useState(false);
 
-  // Expresión regular para validar la placa (ajustar según el formato requerido)
-
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile && selectedFile.type.startsWith("image/")) {
       setFile(selectedFile);
       setIsFileValid(true);
-      setImagePreview(URL.createObjectURL(selectedFile)); // Preview de la imagen
+      setImagePreview(URL.createObjectURL(selectedFile));
     } else {
       setIsFileValid(false);
-      setImagePreview(null); // Limpiar el preview si no es una imagen válida
+      setImagePreview(null);
     }
   };
 
@@ -43,7 +41,6 @@ const CreateVehicleForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validación de la placa
     const matriculaRegex = /^[A-Za-z0-9]{1,5}-[A-Za-z0-9]{1,5}$/;
     if (!matriculaRegex.test(formData.matricula)) {
       Swal.fire({
@@ -84,7 +81,6 @@ const CreateVehicleForm = () => {
         title: "Vehículo creado con éxito",
       });
 
-      // Restablecer todos los estados del formulario, incluyendo el input de archivo
       setFormData({
         marca: "",
         modelo: "",
@@ -99,7 +95,7 @@ const CreateVehicleForm = () => {
       });
       setFile(null);
       setImagePreview(null);
-      setIsFileValid(false); // Restablecer la validación del archivo
+      setIsFileValid(false);
     } else {
       Swal.fire({
         icon: "error",

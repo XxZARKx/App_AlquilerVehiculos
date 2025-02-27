@@ -10,21 +10,18 @@ const VehiculosConMayorGanancia = () => {
     queryFn: getVehicles,
   });
 
-  // Agrupar ingresos por vehículo
   const vehicleEarnings = vehicles.reduce((acc, vehicle) => {
-    const key = `${vehicle.marca} ${vehicle.modelo}`; // Usamos marca y modelo como clave
+    const key = `${vehicle.marca} ${vehicle.modelo}`;
     if (vehicle.estado?.toLowerCase() === "reservado") {
-      acc[key] = (acc[key] || 0) + vehicle.total; // Sumamos el total de cada reserva
+      acc[key] = (acc[key] || 0) + vehicle.total;
     }
     return acc;
   }, {});
 
-  // Ordenar vehículos por ingresos (de mayor a menor)
   const sortedVehicles = Object.entries(vehicleEarnings)
     .sort((a, b) => b[1] - a[1])
     .map(([vehicle, earnings]) => ({ vehicle, earnings }));
 
-  // Datos para el gráfico de barras
   const chartData = {
     labels: sortedVehicles.map((v) => v.vehicle),
     datasets: [

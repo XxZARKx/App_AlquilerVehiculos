@@ -5,15 +5,14 @@ import { getAuthenticatedUser } from "../provider/user/getAuthUser";
 import { createReservation } from "../provider/reservation/createReservation";
 import { getVehicleById } from "../provider/vehicle/getVehicleById";
 import { updateVehicleStatus } from "../provider/reservation/updateVehicleStatus";
-import Swal from "sweetalert2"; // Importar SweetAlert2
+import Swal from "sweetalert2";
 
 const ReservaVehiculo = () => {
-  const { id: vehicleId } = useParams(); // ID del vehículo
+  const { id: vehicleId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [days, setDays] = useState(1); // Días de reserva
+  const [days, setDays] = useState(1);
 
-  // Consulta para obtener los datos del vehículo
   const {
     data: vehicle,
     isLoading,
@@ -24,7 +23,6 @@ const ReservaVehiculo = () => {
     enabled: !!vehicleId,
   });
 
-  // Mutación para crear la reserva
   const createReservationMutation = useMutation({
     mutationFn: createReservation,
     onSuccess: (data) => {
@@ -32,30 +30,28 @@ const ReservaVehiculo = () => {
     },
     onError: (error) => {
       console.error("Error al realizar la reserva:", error);
-      Swal.fire("Error", "Error al realizar la reserva.", "error"); // Reemplazar alert por Swal
+      Swal.fire("Error", "Error al realizar la reserva.", "error");
     },
   });
 
-  // Lógica para realizar la reserva
   const handleReservation = async () => {
     setLoading(true);
 
     try {
-      const user = await getAuthenticatedUser(); // Obtener usuario autenticado
+      const user = await getAuthenticatedUser();
       if (!user) {
         Swal.fire(
           "Error",
           "Por favor, inicia sesión para realizar una reserva.",
           "warning"
-        ); // Reemplazar alert por Swal
+        );
         setLoading(false);
         return;
       }
 
-      const userId = user.id; // ID del usuario
-      const vehicleIdInt = vehicle.id; // ID del vehículo
+      const userId = user.id;
+      const vehicleIdInt = vehicle.id;
 
-      // Crear los datos de la reserva
       const reservation = {
         vehiculo_id: vehicleIdInt,
         usuario_id: userId,
@@ -63,17 +59,15 @@ const ReservaVehiculo = () => {
         total: vehicle.precio * days,
       };
 
-      // Crear la reserva
       await createReservationMutation.mutateAsync(reservation);
 
-      // Actualizar el estado del vehículo a "Reservado"
       await updateVehicleStatus({ id: vehicleIdInt, status: "Reservado" });
 
-      Swal.fire("Éxito", "Reserva realizada con éxito.", "success"); // Reemplazar alert por Swal
+      Swal.fire("Éxito", "Reserva realizada con éxito.", "success");
       window.location.href = "/vehicles";
     } catch (error) {
       console.error("Error al realizar la reserva:", error);
-      Swal.fire("Error", "Error al realizar la reserva.", "error"); // Reemplazar alert por Swal
+      Swal.fire("Error", "Error al realizar la reserva.", "error");
     }
 
     setLoading(false);

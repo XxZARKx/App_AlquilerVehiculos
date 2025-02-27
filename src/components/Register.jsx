@@ -60,7 +60,7 @@ const RegisterForm = ({ tipo, titulo }) => {
         dni: formData.dni,
         correo: formData.correo,
         contraseña: formData.contraseña,
-        tipo: tipo, // El tipo se asigna según el valor pasado
+        tipo: tipo,
       };
 
       const { success, message } = await registerClient(userData);

@@ -9,7 +9,7 @@ const UpdateReservationForm = ({ reservationId, onClose }) => {
     mutationFn: updateReservationDate,
     onSuccess: () => {
       Swal.fire("Reserva actualizada con éxito", "", "success");
-      onClose(); // Cerrar el formulario después de la actualización
+      onClose();
     },
     onError: () => {
       Swal.fire("Error al actualizar la reserva", "", "error");

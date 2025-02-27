@@ -20,10 +20,8 @@ const Login = () => {
         return;
       }
 
-      // Guarda los datos del usuario en localStorage
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Navega a una página protegida después del login exitoso
       window.location.href = "/";
     } catch (error) {
       setErrorMessage(error.message || "Error al iniciar sesión.");

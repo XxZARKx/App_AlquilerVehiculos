@@ -42,8 +42,7 @@ const UpdateVehicleForm = ({ vehicleId, onClose }) => {
       onClose();
     },
     onError: (error) => {
-      // Asegúrate de capturar el error aquí
-      console.error(error); // Imprime el error para depuración
+      console.error(error);
       Swal.fire({
         icon: "error",
         title: "Error al actualizar el vehículo",
@@ -93,7 +92,6 @@ const UpdateVehicleForm = ({ vehicleId, onClose }) => {
 
     let imageUrl = formData.imagen_url;
     if (file) {
-      // Aquí podrías implementar la lógica para subir imágenes
       try {
         imageUrl = await uploadImage(file);
       } catch (error) {

@@ -8,7 +8,6 @@ import Footer from "./Footer";
 const DetallesVehiculo = () => {
   const { id } = useParams();
 
-  // Usamos useQuery para obtener los detalles del vehículo
   const {
     data: vehicle,
     error,

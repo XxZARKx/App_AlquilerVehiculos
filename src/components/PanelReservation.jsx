@@ -6,9 +6,8 @@ import { getReservations } from "../provider/reservation/getReservations";
 import Swal from "sweetalert2";
 
 const PanelReservations = () => {
-  const [reservationsWithUsers, setReservationsWithUsers] = useState([]); // Estado para almacenar reservas con usuarios
+  const [reservationsWithUsers, setReservationsWithUsers] = useState([]);
 
-  // Consulta para obtener reservas
   const { data: reservations = [], refetch } = useQuery({
     queryKey: ["reservations"],
     queryFn: getReservations,
@@ -18,11 +17,9 @@ const PanelReservations = () => {
       const userIds = reservations.map((reservation) => reservation.usuario_id);
 
       try {
-        // Obtener información de los usuarios relacionados
         const users = await getReservationsWithDetails(userIds);
         console.log("Usuarios obtenidos:", users);
 
-        // Combinar las reservas con los usuarios correspondientes
         const reservationsWithUsers = reservations.map((reservation, index) => {
           return { ...reservation, user: users[index] };
         });
@@ -30,12 +27,11 @@ const PanelReservations = () => {
         setReservationsWithUsers(reservationsWithUsers);
       } catch (error) {
         console.error("Error al obtener los usuarios:", error);
-        setReservationsWithUsers(reservations); // Si ocurre un error, solo mostramos las reservas
+        setReservationsWithUsers(reservations);
       }
     },
   });
 
-  // Mutación para eliminar reservas
   const deleteMutation = useMutation({
     mutationFn: deleteReservation,
     onSuccess: () => {
@@ -47,7 +43,6 @@ const PanelReservations = () => {
     },
   });
 
-  // Manejo de eliminación de reservas
   const handleDelete = (id) => {
     Swal.fire({
       title: "¿Estás seguro?",
@@ -63,12 +58,11 @@ const PanelReservations = () => {
     });
   };
 
-  // Ordenar las reservas por fecha de inicio
   const sortedReservations = [...reservationsWithUsers].sort(
     (a, b) => new Date(a.fecha_inicio) - new Date(b.fecha_inicio)
   );
 
-  console.log("Reservas con usuarios:", sortedReservations); // Verifica el estado final de las reservas con usuarios
+  console.log("Reservas con usuarios:", sortedReservations);
 
   return (
     <div className="flex min-h-screen bg-gray-100">

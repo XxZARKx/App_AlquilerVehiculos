@@ -6,20 +6,19 @@ import { getVehicleById } from "../provider/vehicle/getVehicleById";
 import { supabase } from "../../api/supabaseClient";
 import Header from "./Header";
 import Footer from "./Footer";
-import Swal from "sweetalert2"; // Importa SweetAlert2
+import Swal from "sweetalert2";
 
 const MisReservas = () => {
   const [userId, setUserId] = useState(null);
-  const [isDataLoaded, setIsDataLoaded] = useState(false); // Estado para controlar si los datos están completamente cargados
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const queryClient = useQueryClient();
 
-  // Obtener el usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const user = await getAuthenticatedUser();
         if (user) {
-          setUserId(user.id); // Establecer el ID del usuario autenticado
+          setUserId(user.id);
         }
       } catch (error) {
         console.error("Error al obtener el usuario autenticado:", error);
@@ -28,7 +27,6 @@ const MisReservas = () => {
     fetchUser();
   }, []);
 
-  // Consultar las reservas del usuario autenticado
   const {
     data: reservations,
     isLoading: loadingReservations,
@@ -36,10 +34,9 @@ const MisReservas = () => {
   } = useQuery({
     queryKey: ["reservations", userId],
     queryFn: () => getReservationsByUserId(userId),
-    enabled: !!userId, // Activar la consulta solo si userId está disponible
+    enabled: !!userId,
   });
 
-  // Consultar los datos de los vehículos relacionados con las reservas
   const fetchVehicleData = async (reservations) => {
     const vehicleDataPromises = reservations.map((reservation) =>
       getVehicleById(reservation.vehiculo_id)
@@ -57,12 +54,9 @@ const MisReservas = () => {
     enabled: !!reservations && reservations.length > 0,
   });
 
-  // Función para cancelar la reserva
   const cancelReservationMutation = useMutation({
     mutationFn: async (reservationId) => {
-      // Eliminar la reserva
       await supabase.from("reserva").delete().eq("id", reservationId);
-      // Cambiar el estado del vehículo a "Disponible"
       const reservation = reservations.find((res) => res.id === reservationId);
       await supabase
         .from("vehiculo")
@@ -88,7 +82,6 @@ const MisReservas = () => {
   });
 
   const handleCancelReservation = (reservationId) => {
-    // Confirmación antes de cancelar
     Swal.fire({
       title: "¿Estás seguro?",
       text: "¿Quieres cancelar esta reserva?",
@@ -103,7 +96,6 @@ const MisReservas = () => {
     });
   };
 
-  // Verificar si todos los datos están cargados
   useEffect(() => {
     if (
       !loadingReservations &&
@@ -111,16 +103,14 @@ const MisReservas = () => {
       reservations !== undefined &&
       vehicles !== undefined
     ) {
-      setIsDataLoaded(true); // Marcar como cargado cuando ambos datos estén listos
+      setIsDataLoaded(true);
     }
   }, [loadingReservations, loadingVehicles, reservations, vehicles]);
 
-  // Si los datos aún no están cargados, mostrar un mensaje de carga
   if (!isDataLoaded) {
     return <div>Cargando reservas...</div>;
   }
 
-  // Manejo de errores
   if (reservationsError || vehiclesError) {
     return (
       <div>
@@ -130,7 +120,6 @@ const MisReservas = () => {
     );
   }
 
-  // Si no hay reservas, mostrar el mensaje correspondiente
   if (!reservations || reservations.length === 0) {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50">
@@ -155,7 +144,6 @@ const MisReservas = () => {
     );
   }
 
-  // Renderizar las reservas
   return (
     <div className="min-h-screen flex flex-col justify-between">
       <Header />
